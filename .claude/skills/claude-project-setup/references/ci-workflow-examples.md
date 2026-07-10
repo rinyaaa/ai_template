@@ -93,7 +93,7 @@ jobs:
 
 ## シークレットスキャン（全スタック共通・常に入れる）
 
-security-guidanceプラグインは「Claudeがコードを書くとき」、go-live-checklistは「公開の直前」を見るが、人間がGitHub上で直接コミットした秘密情報を継続的に見張る層はCIにしか置けない。gitleaksのジョブを `ci.yml` に追加する。
+security-guidanceプラグインは「Claudeがコードを書くとき」、go-live-checklistは「公開の直前」を見るが、人間がGitHub上で直接コミットした秘密情報を継続的に見張る層はCIにしか置けない。gitleaks CLI（MITライセンス・シークレット設定不要）をdockerで直接実行するジョブを `ci.yml` に追加する。
 
 ```yaml
   secret-scan:
@@ -102,14 +102,38 @@ security-guidanceプラグインは「Claudeがコードを書くとき」、go-
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0        # コミット履歴全体を検査する
-      - uses: gitleaks/gitleaks-action@v2
-        env:
-          GITHUB_TOKEN: ${{ github.token }}
+      - run: |
+          docker run --rm -v "$GITHUB_WORKSPACE:/repo:ro" \
+            ghcr.io/gitleaks/gitleaks:v8.30.1 \
+            detect --source /repo --config /repo/.gitleaks.toml --redact -v
 ```
+
+あわせて、リポジトリ直下に誤検知の許可リストとして `.gitleaks.toml` を置く。`--config` を付けずデフォルトルールのまま運用すると、誤検知が出たときに対処する手段が無く、CIが赤いまま放置される→そのうち「secret-scanのジョブを外そう」という誘惑につながる（安全網を弱める典型パターン）。
+
+```toml
+title = "gitleaks config"
+
+[extend]
+useDefault = true   # gitleaks同梱のデフォルト検出ルールを継承し、allowlistだけ追加する
+
+[allowlist]
+description = "誤検知として確認済みのパターン"
+paths = [
+  # 例: '''testdata/fixtures/.*''',
+]
+regexes = [
+  # 例: '''EXAMPLE_PLACEHOLDER_[A-Z0-9]+''',
+]
+```
+
+allowlistへの追記は、本物の秘密情報でないことを確認した場合のみに限ることをCLAUDE.mdの運用ルールに明記する。
 
 注意点：
 
-- gitleaks-action は個人リポジトリでは無料だが、**Organizationのリポジトリではライセンスキー（無料申請可）を `GITLEAKS_LICENSE` シークレットに設定する必要がある**。Organizationで使う場合はその手順を案内し、すぐ用意できないなら gitleaks CLI を直接実行する形（`docker run --rm -v $PWD:/repo zricethezav/gitleaks:latest detect --source /repo`）に差し替える。
+- **CLI直接実行を既定とする理由**: gitleaks-action（PRコメント等の便利機能付き）もあるが、v2以降は独自ライセンスで、**Organizationのリポジトリではライセンスキーの申請（無料だがフォーム送信が必要）と `GITLEAKS_LICENSE` シークレットの設定が要る**。エンジニアが常駐しないチームにはこの手順自体がハードルなので、設定ゼロで動くCLIを既定にする。個人アカウントのリポジトリでPRコメントが欲しい場合のみ `gitleaks/gitleaks-action@v2` への置き換えを検討する。
+- **イメージは `ghcr.io/gitleaks/gitleaks` を使う（Docker Hubの `zricethezav/gitleaks` ではない）**: 同一イメージのミラーだが、Docker Hubは匿名pullをIPあたり100回/6時間に制限しており、GitHub Actions runnerの共有IPでは混雑時に失敗しうる。ghcr.ioはGitHub自身のレジストリで、Actionsからの匿名pullはこの制限を受けない。
+- **バージョンはDependabotが追従しない**: `run:` 内のdocker image指定はDependabotの監視対象外なので、`project-health-check` スキルの定期点検で最新版との差を手動確認する運用にする。**更新前に配布元のライセンスが変わっていないかも確認する**（`gitleaks-action` がv2.0.0でMITから独自ライセンスに変わり、Organizationでの利用にライセンスキー登録を要求するようになった前例がある）。ライセンスが変わっていたら自動で追従せず、利用条件の変化をユーザーに伝えて判断を仰ぐ。
+- イメージのバージョンはタグで固定し、`:latest` を使わない。`--redact` を付けて、検出した秘密情報の値そのものがCIログに出ないようにする。
 - 検出があった場合にやるべきことは「履歴の掃除」より先に「**そのキーの無効化・再発行**」。この順序をCLAUDE.mdの運用ルールに書いておく（go-live-checklistのStep 2と同じ方針）。
 
 あわせて、GitHub本体のシークレット防御も案内する（CIより手前で効く層）：

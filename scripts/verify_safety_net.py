@@ -166,6 +166,86 @@ if os.path.exists(REF):
 else:
     skip("CI雛形の構文検査", "参照ファイルなし（派生プロジェクトでは正常）")
 
+# --- 4b. .github/workflows 自体の構文とSHA固定 --------------------------------
+# SHA固定の強制はテンプレート自身に限定する（ci-workflow-examples.md の有無で判定）。
+# 派生プロジェクトのCIは雛形からタグ参照（@v4等）で生成されるため、そちらには課さない。
+
+WORKFLOWS_DIR = os.path.join(ROOT, ".github", "workflows")
+IS_TEMPLATE = os.path.exists(REF)
+
+if os.path.isdir(WORKFLOWS_DIR):
+    for fname in sorted(os.listdir(WORKFLOWS_DIR)):
+        if not fname.endswith((".yml", ".yaml")):
+            continue
+        body = open(os.path.join(WORKFLOWS_DIR, fname)).read()
+        label = f"workflows/{fname} がYAMLとしてパースできる"
+        ok, detail = validate_yaml(body)
+        if ok is None:
+            skip(label, detail)
+        else:
+            check(ok, label, detail)
+        if IS_TEMPLATE:
+            unpinned = [
+                m.group(1)
+                for m in re.finditer(r"^\s*(?:-\s+)?uses:\s*([^\s#]+)", body, re.M)
+                if not m.group(1).startswith(("./", "docker://"))
+                and not re.search(r"@[0-9a-f]{40}$", m.group(1))
+            ]
+            check(
+                not unpinned,
+                f"workflows/{fname} のactionがコミットSHAで固定されている",
+                f"未固定: {unpinned}" if unpinned else "",
+            )
+else:
+    skip(".github/workflows の検査", "ディレクトリなし（セットアップ前の派生プロジェクトでは正常）")
+
+DEPENDABOT = os.path.join(ROOT, ".github", "dependabot.yml")
+if os.path.exists(DEPENDABOT):
+    body = open(DEPENDABOT).read()
+    ok, detail = validate_yaml(body)
+    if ok is None:
+        skip("dependabot.yml がYAMLとしてパースできる", detail)
+    else:
+        check(ok, "dependabot.yml がYAMLとしてパースできる", detail)
+    if IS_TEMPLATE:
+        check(
+            "github-actions" in body,
+            "dependabot.yml が github-actions を追従している（SHA固定の更新用）",
+        )
+elif IS_TEMPLATE:
+    check(False, ".github/dependabot.yml が存在する（SHA固定の更新をDependabotが追従）")
+else:
+    skip("dependabot.yml の検査", "ファイルなし（セットアップ前の派生プロジェクトでは正常）")
+
+# --- 4c. gitleaksの誤検知対処用allowlist（secret-scan.ymlが参照する場合のみ必須） ---
+
+
+def validate_toml(body):
+    try:
+        import tomllib  # Python 3.11+
+
+        tomllib.loads(body)
+        return True, ""
+    except ModuleNotFoundError:
+        return None, "tomllibが無い（Python 3.11未満）"
+    except Exception as e:
+        return False, str(e).splitlines()[0]
+
+
+SECRET_SCAN = os.path.join(ROOT, ".github", "workflows", "secret-scan.yml")
+GITLEAKS_TOML = os.path.join(ROOT, ".gitleaks.toml")
+if os.path.exists(SECRET_SCAN) and ".gitleaks.toml" in open(SECRET_SCAN).read():
+    check(
+        os.path.exists(GITLEAKS_TOML),
+        ".gitleaks.toml が存在する（secret-scan.ymlが --config で参照している）",
+    )
+    if os.path.exists(GITLEAKS_TOML):
+        ok, detail = validate_toml(open(GITLEAKS_TOML).read())
+        if ok is None:
+            skip(".gitleaks.toml がTOMLとしてパースできる", detail)
+        else:
+            check(ok, ".gitleaks.toml がTOMLとしてパースできる", detail)
+
 # --- 5. クロスツール指示（AGENTS.md）とCLAUDE.mdの接続 -------------------------
 
 AGENTS_MD = os.path.join(ROOT, "AGENTS.md")

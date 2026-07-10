@@ -48,3 +48,8 @@ AIを活用したアプリケーション開発用のテンプレートリポジ
 ## 構成
 
 - `.claude/skills/` — このリポジトリ専用のClaude Codeスキル（一覧は[こちら](.claude/skills/README.md)）
+- `.github/` — テンプレート自身のCIとDependabot設定。`verify-template`（安全網の整合性検査）を毎push実行し、actionはコミットSHAで固定してDependabotで追従する。gitleaksによるシークレットスキャンはテンプレート自身の内容（Markdown・スキル定義中心）にはリスクが薄く保守コストが見合わないため入れていないが、実装が始まる派生プロジェクトには価値が高いので `claude-project-setup` スキルがCI雛形として案内する。
+
+## ライセンス
+
+[MIT](./LICENSE)

@@ -46,6 +46,8 @@ REQUIRED_DENY = [
     "Bash(git branch -D:*)",
     "Bash(git stash clear:*)",
     "Bash(git stash drop:*)",
+    "Bash(git worktree remove:*)",
+    "Bash(git worktree prune:*)",
     "Read(**/.env)",
     "Read(**/*.pem)",
     "Read(~/.ssh/**)",

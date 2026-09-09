@@ -2,7 +2,7 @@
 
 `docs/night-run-design.md` に基づく実装。GitHub Issueのタスクを、人が寝ている間に実装〜PR作成まで自律的に進める。設計上の背景・未確定事項の解消方針は設計書と `AGENTS.md`/`CLAUDE.md` の安全ルールを参照。
 
-タスクの起点はNotionではなくGitHub Issue（`.claude/skills/github-task-intake/`で起票）にしている。エンジニアのみで運用する前提なら、Notionの非対話認証（サーバー間トークン）を別途用意する手間がなく、`gh`のトークンをそのまま使い回せるため。
+タスクの起点はNotionではなくGitHub Issue（`.claude/skills/task-intake/`で起票）にしている。エンジニアのみで運用する前提なら、Notionの非対話認証（サーバー間トークン）を別途用意する手間がなく、`gh`のトークンをそのまま使い回せるため。
 
 **このシステムは実在するリポジトリへ実際にPRを作成する。初回は必ずドライラン（下記）を通してから本番投入すること。**
 
@@ -21,7 +21,7 @@ night-runは3つのSkillと1つのスクリプトの組み合わせ。**コマ�
 
 | 場面 | 使うもの |
 |---|---|
-| 直したい/作りたいことを思いついたとき | 「issueを起票して」→ `github-task-intake` Skillが観点を確認しながらissue化する |
+| 直したい/作りたいことを思いついたとき | 「issueを起票して」→ `task-intake` Skillが観点を確認しながらissue化する |
 | その日確定したissueをまとめて夜間に回したいとき | 「夜間実行して、6時まで」→ `night-run-hearing` Skillが対象issue・締切を確認 → `night-run/run.sh start`で起動 |
 | 実行中/翌朝に様子を見たいとき | 「night-runどうなってる」→ `night-run-status` Skillが完了/失敗/draft PRを棚卸しして報告 |
 

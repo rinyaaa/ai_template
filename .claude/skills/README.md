@@ -8,13 +8,20 @@
 
 | スキル | 概要 |
 |---|---|
-| [claude-project-setup](claude-project-setup/SKILL.md) | プロジェクトにClaude Code用の`.claude/`環境（権限・hooks・プラグイン設定、CLAUDE.md、必要に応じたskill/command/agentの雛形）を対話形式でセットアップする。エンジニアが常駐しない組織向けの保守的な権限設計・セキュリティレビュー体制に加え、GitHub利用時はCIワークフロー・Dependabot・ブランチ保護の整備にも対応。 |
-| [safe-rollback](safe-rollback/SKILL.md) | 「壊れた」「元に戻したい」となったときの復旧ワークフロー。破壊的コマンドを使わず、退避→切り分け→revert/切り戻しの順で安全に回復する。デプロイ・DBマイグレーションの巻き戻しにも対応。 |
-| [go-live-checklist](go-live-checklist/SKILL.md) | アプリを公開・リリースする前の監査。リスクレベルを判定し、秘密情報・認証認可・露出面・データ運用を棚卸しして `/security-review` まで実行。高リスク用途では人間の専門家レビューを推奨する。 |
-| [project-health-check](project-health-check/SKILL.md) | 「健康診断して」で発動する定期点検。Dependabot PR・セキュリティアラート・CI失敗・依存の脆弱性・放置ブランチを棚卸しし、優先度付きで報告。週1回の実行を推奨。 |
-| [import-skills](import-skills/SKILL.md) | 「このリポジトリのスキルを入れて」「/import-skills」で発動。外部Gitリポジトリ（任意の公開リポジトリを含む）からスキルを取り込む。信用できないコード前提で秘密情報・実行コード/hook・プロンプトインジェクション・安全網との衝突を監査し、危険なものは人間の確認を得るまでコピーしない。 |
-| [github-task-intake](github-task-intake/SKILL.md) | 「issueを起票して」で発動。Engineer/PM/PO/Designer等の観点で人間と一緒に理解を深めてからGitHub Issueを起票する。`night-run`がタスクを拾う前にスコープ・受け入れ条件を固めておくためのスキル。 |
-| [night-run-hearing](night-run-hearing/SKILL.md) | 「夜間実行して」「寝てる間に実装しておいて」で発動。夜間自律タスク実行(`night-run/`)の対象issue・締切をヒアリングし、実行用のstateファイルまたは実行プロンプトを生成する（実装・PR作成は行わない）。 |
-| [night-run-status](night-run-status/SKILL.md) | 「night-runどうなってる」で発動。夜間自律タスク実行の進捗・結果(done/failed/draft PR)を読み取り専用で棚卸しして報告する。 |
+| [claude-project-setup](claude-project-setup/SKILL.md) | プロジェクトにClaude Code用の`.claude/`環境（権限・hooks・プラグイン設定、CLAUDE.md、必要に応じたskill/command/agentの雛形）を対話形式でセットアップする。GitHub利用時はCI・Dependabot・ブランチ保護の整備にも対応。 |
+| [safe-rollback](safe-rollback/SKILL.md) | 「壊れた」「元に戻したい」となったときの復旧ワークフロー。破壊的コマンドを使わず、退避→切り分け→revert/切り戻しの順で安全に回復する。 |
+| [go-live-checklist](go-live-checklist/SKILL.md) | アプリを公開・リリースする前の監査。リスクレベルを判定し、秘密情報・認証認可・露出面・データ運用を棚卸しして `/security-review` まで実行する。 |
+| [project-health-check](project-health-check/SKILL.md) | 「健康診断して」で発動する定期点検。Dependabot PR・セキュリティアラート・CI失敗・依存の脆弱性・放置ブランチを棚卸しし、優先度付きで報告する。週1回の実行を推奨。 |
+| [import-skills](import-skills/SKILL.md) | 外部Gitリポジトリからスキルを取り込む。信用できないコード前提で監査し、危険なものは人間の確認を得るまでコピーしない。 |
+| [task-intake](task-intake/SKILL.md) | 着手前にスコープ・受け入れ条件を人間と固め、GitHub Issue または計画書(`docs/plans/`)として出力する。ヒアリングは共通で、最後の出力先だけを選ぶ。 |
+| [night-run-hearing](night-run-hearing/SKILL.md) | 夜間自律タスク実行(`night-run/`)の対象issue・締切をヒアリングし、実行用のstateファイルまたは実行プロンプトを生成する（実装・PR作成は行わない）。 |
+| [night-run-status](night-run-status/SKILL.md) | 夜間自律タスク実行の進捗・結果(done/failed/draft PR)を読み取り専用で棚卸しして報告する。 |
+| [implementation-review](implementation-review/SKILL.md) | 実装差分を計画書・スコープと突き合わせて受け入れ判定する。変更規模に応じてセッション内レビューと別エージェントによる独立レビューを使い分け、観点ごとに満たす/満たさないを判定し、1つでも満たさなければ差し戻す。 |
+| [work-log](work-log/SKILL.md) | 終わったタスクを `docs/history/` に日報形式で残し、効く知見を1行に削ってCLAUDE.mdやスキルへ昇格させる。history自体は読まれない前提の置き場所。 |
+| [parallel-worktree](parallel-worktree/SKILL.md) | 複数機能を git worktree に分けて並列実装するときの、分割判定・ツリーのセットアップ・後始末の手順。既定は直列で、ユーザーが明示的に並列を求めたときだけ使う。 |
+| [ui-guidelines](ui-guidelines/SKILL.md) | UI実装時のタッチ操作対応（ホバー依存の禁止・44×44px）とコントラストの規範。配色は差し替え前提の初期パレットを持つ。 |
+| [doc-index](doc-index/SKILL.md) | ドキュメント索引の1行の型（参照タイミングか扱わない範囲を必ず書く）と適用手順。ドキュメントを追加・削除したら同じコミットで索引を更新する。 |
 
 新しいスキルを追加したら、この表にも1行追記すること。frontmatterの `description` は全スキル分が毎セッションのコンテキストに常時読み込まれるので、トリガー条件（いつ発動すべきか）に絞って書き、手順や説明は本文に書くこと——スキルが増えるほどdescriptionの肥大が固定コストとして効いてくる。
+
+短縮するときに削ってよいのは説明文だけで、**口語のトリガー語（「壊れた」「公開したい」「issueを切りたい」等）は残す**。発動条件そのものなので、削ると呼ばれなくなる。

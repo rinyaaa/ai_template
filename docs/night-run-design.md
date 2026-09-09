@@ -1,6 +1,6 @@
 # 夜間自律タスク実行システム 設計書 (v6)
 
-> **実装時の変更点**: このテンプレートはエンジニアのみで運用する前提のため、タスクの起点をこの文書が前提とする「Notion MCP」から**GitHub Issue**に変更して実装している(`.claude/skills/github-task-intake/`で起票、`.claude/skills/night-run-hearing/`・`night-run/night_runner.py`は`gh issue view`で内容を取得)。これにより10章のNotion非対話認証まわりの課題は発生しない。本文中の「Notion」を読む際はこの変更を踏まえること。議論フェーズ(役割ベースの合意形成)は夜間の自律判定としては採用せず、`.claude/skills/github-task-intake/`内で人間同席の起票時チェックリストとして採用している。
+> **実装時の変更点**: このテンプレートはエンジニアのみで運用する前提のため、タスクの起点をこの文書が前提とする「Notion MCP」から**GitHub Issue**に変更して実装している(`.claude/skills/task-intake/`で起票、`.claude/skills/night-run-hearing/`・`night-run/night_runner.py`は`gh issue view`で内容を取得)。これにより10章のNotion非対話認証まわりの課題は発生しない。本文中の「Notion」を読む際はこの変更を踏まえること。議論フェーズ(役割ベースの合意形成)は夜間の自律判定としては採用せず、`.claude/skills/task-intake/`内で人間同席の起票時チェックリストとして採用している。
 
 ---
 

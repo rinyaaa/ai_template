@@ -9,7 +9,22 @@ AIを活用したアプリケーション開発用のテンプレートリポジ
 - アプリやコードが壊れたときは、Claude Codeに「壊れたので戻したい」と伝えれば `safe-rollback` スキルが安全な手順で復旧する。
 - アプリを公開・リリースする前は、Claude Codeに「公開したい」と伝えれば `go-live-checklist` スキルがリリース前監査を行う。
 - エンジニアでない人がClaude Codeと働くときの約束事は [docs/working-with-claude-code.md](./docs/working-with-claude-code.md) を最初に読むこと（許可ダイアログの判断のしかた、報告の読みかた、頼みかたのコツ）。
-- Claude Code向けの開発ガイドラインは [CLAUDE.md](./CLAUDE.md) を参照。プロジェクトの中身が固まったら、ビルド/実行/テストコマンドやアーキテクチャ概要をそちらに追記する。
+- Claude Code向けの開発ガイドラインは [CLAUDE.md](./CLAUDE.md) を参照。プロジェクトの中身が固まったら、ビルド/実行/テストコマンド・アーキテクチャ概要・レイヤー構成をそちらに追記する。
+
+## 作業の進め方
+
+タスク受け取り → 計画 → 実装 → レビュー → 完了記録、という流れをスキルとして組み込んである。ルールの中核（スコープ厳守・ループ上限5回・自分の実装を自分で承認しない）は [AGENTS.md](./AGENTS.md) の「作業の進め方」にあり、詳細な手順は各スキルにある。
+
+| 言うこと | 起きること |
+| --- | --- |
+| 「計画を立てて」「issueを起票して」 | `task-intake` がスコープ・受け入れ条件を一緒に固め、計画書（`docs/plans/`）かGitHub Issueにする |
+| 「レビューして」 | `implementation-review` が計画書と差分を突き合わせ、観点ごとに満たす/満たさないを判定する |
+| 「記録して」 | `work-log` が記録を `docs/history/` に残し、**効く知見を1行に削って `CLAUDE.md`・スキルへ昇格させる**（history自体は読まれない置き場所） |
+| 「並列で進めて」 | `parallel-worktree` が機能ごとにworktreeを分ける（**既定は直列**。明示的に頼んだときだけ） |
+
+**手順そのものは常時読み込まれない。** ルールを `CLAUDE.md` に全部書くと毎回のやり取りにその分のコストがかかるので、常時読み込むのは中核だけにして、詳細は必要になったスキルだけが読む構成にしてある。スキルを追加するときも同じ原則で、`description` はトリガー条件だけに絞る（[.claude/skills/README.md](.claude/skills/README.md) 参照）。
+
+やり取りのコストが気になる場合は、あわせて次を検討する——1タスク1セッションに分ける、`/context` で何が読み込まれているか確認する、実装は軽いモデル・計画とレビューは重いモデルに割り当てる（`/model`）。
 
 ## 安全網の範囲と限界
 
@@ -48,6 +63,8 @@ AIを活用したアプリケーション開発用のテンプレートリポジ
 ## 構成
 
 - `.claude/skills/` — このリポジトリ専用のClaude Codeスキル（一覧は[こちら](.claude/skills/README.md)）
+- `docs/plans/` — `task-intake` が出力する計画書。合意済みのものだけを置く（[README](docs/plans/README.md)）
+- `docs/history/` — `work-log` が残す作業記録。仕様の正本には使わない（[README](docs/history/README.md)）
 - `.github/` — テンプレート自身のCIとDependabot設定。`verify-template`（安全網の整合性検査）を毎push実行し、actionはコミットSHAで固定してDependabotで追従する。gitleaksによるシークレットスキャンはテンプレート自身の内容（Markdown・スキル定義中心）にはリスクが薄く保守コストが見合わないため入れていないが、実装が始まる派生プロジェクトには価値が高いので `claude-project-setup` スキルがCI雛形として案内する。
 
 ## ライセンス

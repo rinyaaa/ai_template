@@ -1,6 +1,6 @@
 ---
 name: night-run-status
-description: 夜間自律タスク実行(night-run)の進捗・結果を確認する。「night-runどうなってる」「夜間実行の状況を教えて」「進捗確認して」「昨日の夜間実行の結果は」「タスク終わった?」といった依頼で発動する。night-run-state.json・alerts.log・summary.txt・実行中コンテナの有無をまとめて棚卸しして報告する(読み取りのみ、状態やコンテナの変更は行わない)。
+description: 「night-runどうなってる」「夜間実行の状況を教えて」「進捗確認して」「昨日の夜間実行の結果は」「タスク終わった?」で発動。night-runの進捗・結果を読み取り専用で棚卸しして報告する。
 ---
 
 # night-run ステータス確認

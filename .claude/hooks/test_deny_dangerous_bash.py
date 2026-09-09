@@ -54,6 +54,11 @@ CASES = [
     ("cd /tmp; git branch -D main", True),
     ("git stash clear", True),
     ("cd /tmp; git stash drop", True),
+    # --- ワークツリーの削除（並列実装の後始末はAIが実行しない） ---
+    ("git worktree remove ../proj-worktrees/feature-a", True),
+    ("git worktree remove --force ../proj-worktrees/feature-a", True),
+    ("cd /tmp; git worktree prune", True),
+    ('bash -c "git worktree remove ../x"', True),
     # --- 秘密情報のBash経由読み取り（セキュリティレビュー指摘） ---
     ("cat .env", True),
     ("grep KEY .env.production", True),
@@ -100,6 +105,8 @@ CASES = [
     ("git branch -d merged-branch", False),
     ('git stash push -m "drop the old idea"', False),
     ("git stash list", False),
+    ("git worktree add ../proj-worktrees/feature-a -b feature/feature-a main", False),
+    ("git worktree list", False),
     ("cat .env.example", False),
     ("cp .env.example .env", False),
     ("cp -t /tmp/dst config.json", False),

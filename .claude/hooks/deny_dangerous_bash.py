@@ -205,6 +205,13 @@ def check_segment(segment):
                 if t in ("clear", "drop"):
                     return "git stash の clear/drop は退避した作業を消すためブロックしています。stashは残したままにしてください（safe-rollback スキル参照）。"
                 break
+        if sub == "worktree":
+            for t in after:
+                if t.startswith("-"):
+                    continue
+                if t in ("remove", "prune"):
+                    return "git worktree の remove/prune はワークツリーのファイルを実際に削除するためブロックしています。不要になったワークツリーは削除対象を列挙して人間に削除を依頼してください（parallel-worktree スキル参照）。"
+                break
 
     # 秘密情報ファイルの読み取り・複製（Readツールのdenyと対になる検査）。
     # 免除（.env.example 等の雛形）は引数ごとに個別判定する——

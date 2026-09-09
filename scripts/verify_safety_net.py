@@ -169,11 +169,16 @@ else:
     skip("CI雛形の構文検査", "参照ファイルなし（派生プロジェクトでは正常）")
 
 # --- 4b. .github/workflows 自体の構文とSHA固定 --------------------------------
-# SHA固定の強制はテンプレート自身に限定する（ci-workflow-examples.md の有無で判定）。
-# 派生プロジェクトのCIは雛形からタグ参照（@v4等）で生成されるため、そちらには課さない。
+# SHA固定の強制はテンプレート自身に限定する。ci-workflow-examples.md は
+# claude-project-setup skill の一部として派生プロジェクトにも常に同梱されるため、
+# その存在だけでは判定できない。テンプレート自身は「中身が空」（プロジェクトの
+# 実装マニフェストを持たない）という特徴で区別する。
 
 WORKFLOWS_DIR = os.path.join(ROOT, ".github", "workflows")
-IS_TEMPLATE = os.path.exists(REF)
+_PROJECT_MANIFESTS = ("package.json", "pyproject.toml", "go.mod", "Cargo.toml", "Gemfile")
+IS_TEMPLATE = os.path.exists(REF) and not any(
+    os.path.exists(os.path.join(ROOT, m)) for m in _PROJECT_MANIFESTS
+)
 
 if os.path.isdir(WORKFLOWS_DIR):
     for fname in sorted(os.listdir(WORKFLOWS_DIR)):

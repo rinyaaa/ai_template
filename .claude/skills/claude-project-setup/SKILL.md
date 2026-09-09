@@ -19,6 +19,7 @@ description: 「セットアップして」「環境構築して」「init」「
 4. 繰り返し作業があれば、それぞれ Skill・Command・Subagent のどれが適切かを判断して雛形を作る
 5. `CLAUDE.md` のビルド/実行/テストコマンド欄を埋める
 6. 変更点をまとめて提示する
+7. このスキルが扱わない範囲（派生プロジェクトで手で埋める箇所）を伝える
 
 一度に全部をヒアリングしようとせず、段階を踏んで少しずつ確認していく。ユーザーは自分のプロジェクトについて全て把握しているとは限らないし、逆にこちらが自動検出で分かることまで聞くと煩わしいので、**自動検出できることは検出し、分からないことだけ聞く**というバランスを保つ。
 
@@ -164,7 +165,9 @@ Step 2 で Skill/Command/Subagent を作ると決めたものについて、最�
 
 - Command: `.claude/commands/<name>.md`（frontmatterに `description` 、本文に実行手順）
 - Skill: `.claude/skills/<name>/SKILL.md`（frontmatterに `name` と `description`。`description` にはトリガー条件を具体的に書く）
-- Subagent: `.claude/agents/<name>.md`（frontmatterに `name`, `description`, 必要なら `tools` の絞り込み）
+- Subagent: `.claude/agents/<name>.md`（frontmatterに `name`, `description`, 必要なら `tools` と `model` の絞り込み）
+
+レビュー担当のサブエージェント（`impl-reviewer` / `impl-reviewer-recheck`）はテンプレートに同梱済みなので、**重複して作らない**。
 
 あわせて、ワークフローが使うディレクトリを用意する。中身が空のうちは作らなくてよいが、**どこに何を置くかはこの時点でユーザーに伝えておく**。
 
@@ -207,3 +210,13 @@ UIを持つプロジェクトで配色が決まっているなら、その表を
 エンジニアが常駐するチームには、あわせて**作業の進め方のスキル**を紹介する。「計画を立てて」で `task-intake`（スコープと受け入れ条件を固めて計画書かIssueにする）、「レビューして」で `implementation-review`（計画書と差分を突き合わせて受け入れ判定）、「記録して」で `work-log`（知見を `docs/history/` に残す）が発動する。
 
 非エンジニアモードでは、これに加えて `docs/working-with-claude-code.md`（許可ダイアログの判断のしかた・報告の読みかた・頼みかたのコツをまとめた人間向けガイド）をチーム全員が最初に読むよう案内する。安全網の半分は人間側の行動でできているので、このガイドの案内を省略しない。
+
+## Step 7: このスキルが扱わない範囲を伝える
+
+**扱わなかったものを黙って残さない。** このスキルが埋めるのは `.claude/` 環境・`CLAUDE.md`・（GitHubを使うなら）CI設定まで。テンプレートには他にも派生プロジェクトで埋める箇所があり、そこは対象外なので、**該当するものだけ**を名指しで伝えて終わる。
+
+- **UIがあるなら**: `.claude/skills/ui-guidelines/SKILL.md` の初期パレットはテンプレート付属の色。ブランドカラーが決まっているなら、同スキルの「差し替え手順」で置き換える
+- **night-run（夜間の自律実行）を使うなら**: `night-run/docker/Dockerfile`（ツールチェーン）・`init-firewall.sh`（パッケージレジストリの配信元）・`entrypoint.sh`（既定値）・`night_runner.py` の `build_prompt`（テスト/静的解析コマンド）・`run.sh`（既定のリポジトリ）・`night-run-hearing` のタイムゾーンを埋める必要がある。手順は `night-run/README.md` のカスタマイズ欄。**失敗するのが夜中なので、動かす前に埋める**
+- 使わない機能は触らなくてよい。全部埋める必要はない
+
+一覧は `README.md` の「派生プロジェクトで埋めるもの」にもある。埋め忘れは `project-health-check` が棚卸しする。

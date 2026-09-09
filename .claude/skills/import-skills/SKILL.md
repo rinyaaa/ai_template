@@ -49,7 +49,7 @@ description: 「このリポジトリのスキルを入れて」「◯◯のス�
 
 承認されたスキルだけを `cp -R <tmp>/<skill-dir> .claude/skills/<name>/` でコピーする。
 
-- `.claude/skills/README.md` の一覧表に、取り込んだスキルの行を追記する（`description` はトリガー条件に絞る——全スキル分が毎セッションのコンテキストに載る固定コストなので肥大させない）。
+- `.claude/skills/README.md` の一覧表に、取り込んだスキルの行を追記する（`description` はトリガー条件に絞る——全スキル分が並んだ中から1つを選ぶので、説明で膨らむと発動精度が落ちる）。
 - 取り込み元URLと取り込んだ日付を、各スキルの出所として README か frontmatter コメントに残す（更新・再取り込み時の追跡用）。
 
 ## Step 6: 後片付けと検証

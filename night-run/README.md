@@ -14,6 +14,8 @@ night-runは元々Flutterプロジェクト向けに実装されたものを、�
 - `night-run/docker/init-firewall.sh`: `FIXED_DOMAINS`に、追加したツールチェーンが使うパッケージレジストリ等の配信元を追加する(無いと`flutter pub get`/`npm install`等の相当処理がネットワーク遮断で失敗する)
 - `night-run/night_runner.py` の `build_prompt`: テスト・静的解析コマンドの例示部分を自分のプロジェクトのコマンドに合わせて調整する(CLAUDE.mdにコマンドが書いてあれば、そちらを参照させる指示のままでも動く)
 - `night-run/run.sh` を起動する際、`NIGHT_RUN_REPO_URL`環境変数に自分のリポジトリのURLを指定する(下記セットアップ手順を参照)
+- `night-run/docker/entrypoint.sh`: 上の`NIGHT_RUN_REPO_URL`は既定値を持たず、未設定なら起動時にエラーで止まる。毎回指定するのが煩わしければ、`run.sh`側で自リポジトリのURLを既定値として固定する(entrypoint.sh自体は書き換えなくてよい。この2項目は同じ変数の話)
+- `.claude/skills/night-run-hearing/SKILL.md`: 締切の計算に使うタイムゾーンが`Asia/Tokyo`固定になっている(`TODO`コメントの箇所)。別のタイムゾーンで運用するなら変更する
 
 ## 使い方（日常運用）
 

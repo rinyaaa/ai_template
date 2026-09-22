@@ -99,6 +99,7 @@ night-run（夜間の自律実行）を使わないなら、下6つは無視し�
 - `.claude/agents/` は、スキルから起動される専用サブエージェント（レビュー担当）の定義の正本です。モデルと使えるツールをfrontmatterで固定しているので、レビューの費用や権限を変えたいときだけ触ります。手順そのものは `.claude/skills/implementation-review/SKILL.md` にあります。
 - `.claude/settings.json` と `.claude/hooks/` は、Claude Codeでの強制ブロック（`permissions.deny` ＋ PreToolUse hook）の正本です。緩和を検討するときだけ触り、変更したら `python3 .claude/hooks/test_deny_dangerous_bash.py` と `python3 scripts/verify_safety_net.py` を実行してください。
 - `docs/plans/` は `task-intake` が出力する合意済み計画書の正本です。実装とレビューのときに、該当タスクのものだけ参照します。検討途中のメモや作業ログは置きません（[README](docs/plans/README.md)）。
+- `docs/adr/` は技術判断（ADR）の正本です。決定を見直すとき・「なぜこうなっているのか」を確認するときに、該当するADRだけ読みます。判断を変えるときは過去のADRを書き換えず、新しいADRを追加して古い方のステータスを更新してください（[README](docs/adr/README.md)）。
 - `docs/night-run-design.md` は夜間自律タスク実行の設計の正本です。night-runの制約や設計判断の根拠を確認するときだけ読み、日常運用の手順としては使いません。
 - `.github/` はテンプレート自身のCI（`verify-template` が安全網の整合性を毎push検査）とDependabot設定の正本です。CIの挙動やaction固定（コミットSHA）を変えるときに参照します。
 

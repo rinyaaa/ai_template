@@ -18,6 +18,7 @@
 | [night-run-status](night-run-status/SKILL.md) | 夜間自律タスク実行の進捗・結果(done/failed/draft PR)を読み取り専用で棚卸しして報告する。 |
 | [implementation-review](implementation-review/SKILL.md) | 実装差分を計画書・スコープと突き合わせて受け入れ判定する。変更規模に応じてセッション内レビューと `.claude/agents/` の専用レビュー担当を使い分け、観点ごとに満たす/満たさないを判定する。再レビューはチケットの範囲だけを軽いモデルで確認する。 |
 | [work-log](work-log/SKILL.md) | 終わったタスクを `docs/history/` に日報形式で残し、効く知見を1行に削ってCLAUDE.mdやスキルへ昇格させる。history自体は読まれない前提の置き場所。 |
+| [adr](adr/SKILL.md) | 人間と決めた判断（ライブラリ選定・互換性を壊す変更・安全ルールの緩和・仕様の解釈）を `docs/adr/` に1決定1ファイルで残す。決定を変えるときは過去のADRを書き換えず、新しいADRで置き換える。 |
 | [parallel-worktree](parallel-worktree/SKILL.md) | 複数機能を git worktree に分けて並列実装するときの、分割判定・ツリーのセットアップ・後始末の手順。既定は直列で、ユーザーが明示的に並列を求めたときだけ使う。 |
 | [ui-guidelines](ui-guidelines/SKILL.md) | UI実装時のタッチ操作対応（ホバー依存の禁止・44×44px）とコントラストの規範。配色は差し替え前提の初期パレットを持つ。 |
 | [doc-index](doc-index/SKILL.md) | ドキュメント索引の1行の型（参照タイミングか扱わない範囲を必ず書く）と適用手順。ドキュメントを追加・削除したら同じコミットで索引を更新する。 |

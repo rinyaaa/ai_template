@@ -32,5 +32,5 @@ AIを活用したアプリケーション開発用のテンプレート。中身
 ## Claude Code固有の補足（このセクションはテンプレートを埋めた後も残すこと）
 
 - AGENTS.mdの安全ルール1（破壊的コマンド。`git worktree remove` / `prune` を含む）は、Claude Codeでは `.claude/settings.json` の `permissions.deny` と `.claude/hooks/deny_dangerous_bash.py`（PreToolUse hook）により**強制**される。hookの検出パターンを変更したら `python3 .claude/hooks/test_deny_dangerous_bash.py` で回帰テストを必ず実行する。
-- AGENTS.mdの「作業の進め方」が指すスキル（task-intake / implementation-review / work-log）と、ランブック（safe-rollback / go-live-checklist / project-health-check）は、Claude Codeではスキルとして自動発動する。「公開して」と言われても go-live-checklist の監査を通さずにデプロイへ進まない。「壊れた」と言われたら safe-rollback に従い、`git reset --hard` や force push で回復しない。
+- AGENTS.mdの「作業の進め方」が指すスキル（task-intake / implementation-review / work-log / adr）と、ランブック（safe-rollback / go-live-checklist / project-health-check）は、Claude Codeではスキルとして自動発動する。「公開して」と言われても go-live-checklist の監査を通さずにデプロイへ進まない。「壊れた」と言われたら safe-rollback に従い、`git reset --hard` や force push で回復しない。
 - テンプレートリポジトリでは `.github/workflows/verify-template.yml` が安全網の整合性（`scripts/verify_safety_net.py`）を毎push検査する。

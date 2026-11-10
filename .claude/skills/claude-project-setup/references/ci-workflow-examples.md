@@ -6,7 +6,6 @@ claude-project-setupスキルのStep 3（GitHub利用時）で `.github/workflow
 
 - トリガーは `pull_request` と `push`（デフォルトブランチ）の両方。PRを使わない運用でもpushで検査が走るようにする。
 - ジョブは「lint」「test」「依存の脆弱性チェック」の3種を基本とし、検出できたものだけ入れる。加えて「シークレットスキャン」（後述）は技術スタックに依存しないので、**検出結果に関係なく常に入れる**。
-- 非エンジニアモードのプロジェクトでは、CIは「ローカルのhookをすり抜けた変更を最後に止める層」なので、生成をスキップしない。CIが失敗したときに何を意味するかをStep 6で平易に説明する（「GitHub上で自動チェックが失敗すると、その変更は取り込まない約束になっています」等）。
 
 ## Node.js（npm の例。yarn/pnpm はコマンドを読み替える）
 
@@ -130,7 +129,7 @@ allowlistへの追記は、本物の秘密情報でないことを確認した�
 
 注意点：
 
-- **CLI直接実行を既定とする理由**: gitleaks-action（PRコメント等の便利機能付き）もあるが、v2以降は独自ライセンスで、**Organizationのリポジトリではライセンスキーの申請（無料だがフォーム送信が必要）と `GITLEAKS_LICENSE` シークレットの設定が要る**。エンジニアが常駐しないチームにはこの手順自体がハードルなので、設定ゼロで動くCLIを既定にする。個人アカウントのリポジトリでPRコメントが欲しい場合のみ `gitleaks/gitleaks-action@v2` への置き換えを検討する。
+- **CLI直接実行を既定とする理由**: gitleaks-action（PRコメント等の便利機能付き）もあるが、v2以降は独自ライセンスで、**Organizationのリポジトリではライセンスキーの申請（無料だがフォーム送信が必要）と `GITLEAKS_LICENSE` シークレットの設定が要る**。この手順自体がハードルなので、設定ゼロで動くCLIを既定にする。個人アカウントのリポジトリでPRコメントが欲しい場合のみ `gitleaks/gitleaks-action@v2` への置き換えを検討する。
 - **イメージは `ghcr.io/gitleaks/gitleaks` を使う（Docker Hubの `zricethezav/gitleaks` ではない）**: 同一イメージのミラーだが、Docker Hubは匿名pullをIPあたり100回/6時間に制限しており、GitHub Actions runnerの共有IPでは混雑時に失敗しうる。ghcr.ioはGitHub自身のレジストリで、Actionsからの匿名pullはこの制限を受けない。
 - **バージョンはDependabotが追従しない**: `run:` 内のdocker image指定はDependabotの監視対象外なので、`project-health-check` スキルの定期点検で最新版との差を手動確認する運用にする。**更新前に配布元のライセンスが変わっていないかも確認する**（`gitleaks-action` がv2.0.0でMITから独自ライセンスに変わり、Organizationでの利用にライセンスキー登録を要求するようになった前例がある）。ライセンスが変わっていたら自動で追従せず、利用条件の変化をユーザーに伝えて判断を仰ぐ。
 - イメージのバージョンはタグで固定し、`:latest` を使わない。`--redact` を付けて、検出した秘密情報の値そのものがCIログに出ないようにする。
@@ -157,7 +156,7 @@ updates:
       interval: weekly
 ```
 
-非エンジニアモードでは、DependabotのPRを「誰がどう扱うか」まで決めないと放置される。Step 6で「週に一度、届いた更新PRをClaude Codeに『DependabotのPRを確認して』と依頼し、CIが通っていれば取り込む」のような運用文をCLAUDE.mdに残すことを提案する。
+DependabotのPRは「誰がどう扱うか」まで決めないと放置される。Step 6で「週に一度、届いた更新PRをClaude Codeに『DependabotのPRを確認して』と依頼し、CIが通っていれば取り込む」のような運用文をCLAUDE.mdに残すことを提案する。
 
 ## ブランチ保護（CIを「強制」に変える設定）
 
@@ -181,4 +180,4 @@ gh api repos/{owner}/{repo}/rulesets -X POST --input - <<'EOF'
 EOF
 ```
 
-`required_approving_review_count` はチームに人間のレビュアーがいるなら1以上に、非エンジニアのみのチームなら0にして代わりに「マージ前に `/security-review` を実行する」運用をCLAUDE.mdに明記する。無料プランのプライベートリポジトリではルールセット/ブランチ保護が使えない場合がある——その場合は設定できない事実を隠さず、「直pushをしない」を運用ルールとしてCLAUDE.mdに書くにとどめる。
+`required_approving_review_count` はチームに人間のレビュアーがいるなら1以上に、いなければ0にして代わりに「マージ前に `/security-review` を実行する」運用をCLAUDE.mdに明記する。無料プランのプライベートリポジトリではルールセット/ブランチ保護が使えない場合がある——その場合は設定できない事実を隠さず、「直pushをしない」を運用ルールとしてCLAUDE.mdに書くにとどめる。

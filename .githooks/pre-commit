@@ -1,0 +1,25 @@
+#!/bin/sh
+# どのAIツール・人の手のコミットにも効く検査（有効化: git config core.hooksPath .githooks）。
+# AIのhookはそのツールの中でしか効かないので、最後の手前の関門としてここで止める。
+set -eu
+ROOT=$(git rev-parse --show-toplevel)
+cd "$ROOT"
+
+# 1. コミットされる中身に秘密情報（APIキー・秘密鍵・.env）が無いか。履歴に入ると消せないので最初に見る
+python3 -B scripts/golive_scan.py --staged
+
+# 2. コミットされる中身に不可視文字・指示の乗っ取りが無いか
+python3 -B scripts/scan_agent_content.py --staged
+
+# 3. Work Item・ADR の決まり（状態・依存・置き換え）と、承認済みADRの「決定」「理由」を書き換えていないか
+python3 -B scripts/check_records.py --staged >/dev/null || { python3 -B scripts/check_records.py --staged >&2; exit 1; }
+
+# 4. 安全網に関わるファイルを含むなら、整合性検査とアダプターの同期を確かめる
+if git diff --cached --name-only | grep -Eq '^(AGENTS\.md|CLAUDE\.md|\.claude/|\.codex/|\.cursor/|\.agents/|\.githooks/|scripts/|config/|\.github/)'; then
+  python3 -B scripts/sync_agent_adapters.py --check
+  python3 -B scripts/verify_safety_net.py >/dev/null || {
+    python3 -B scripts/verify_safety_net.py | grep '^FAIL' >&2
+    echo "安全網の整合性検査に失敗。直してからコミットする（--no-verify で回避しない）" >&2
+    exit 1
+  }
+fi

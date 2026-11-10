@@ -267,11 +267,68 @@ if os.path.exists(CLAUDE_MD):
 else:
     check(False, "CLAUDE.md が存在する")
 
+# --- 5b. 他ツール（Codex・Cursor）のhookと、終了時の自動検査 -------------------
+# hook はそのツールの中でしか効かないので、ツールごとに設定が残っているかを見る。
+
+STOP_HOOK = os.path.join(ROOT, ".claude", "hooks", "stop_verify.py")
+check(os.path.exists(STOP_HOOK), "終了時hook（stop_verify.py）が存在する")
+if os.path.exists(SETTINGS):
+    try:
+        check("stop_verify.py" in json.dumps(load_jsonc(SETTINGS).get("hooks", {}).get("Stop", [])),
+              "settings.json の Stop に stop_verify.py が設定されている")
+    except Exception as e:
+        check(False, "settings.json の Stop を読める", str(e))
+
+for rel, needles in (
+    (".codex/hooks.json", ["deny_dangerous_bash.py", "--provider codex", "stop_verify.py"]),
+    (".cursor/hooks.json", ["deny_dangerous_bash.py", "--provider cursor", "--event read", "stop_verify.py"]),
+):
+    path = os.path.join(ROOT, rel)
+    if not os.path.exists(path):
+        check(False, f"{rel} が存在する（そのツールでは破壊的コマンドが止まらなくなる）")
+        continue
+    try:
+        body = json.dumps(load_jsonc(path))
+        missing = [n for n in needles if n not in body]
+        check(not missing, f"{rel} に安全網のhookが設定されている", f"欠落: {missing}" if missing else "")
+    except Exception as e:
+        check(False, f"{rel} がパースできる", str(e))
+
+PRE_COMMIT = os.path.join(ROOT, ".githooks", "pre-commit")
+check(os.path.exists(PRE_COMMIT) and os.access(PRE_COMMIT, os.X_OK),
+      ".githooks/pre-commit が存在して実行可能（どのツールのコミットにも効く層）")
+
+# --- 5c. 生成アダプターの同期と、AIが読む文字の検査 ---------------------------
+
+for label, cmd in (
+    ("Codex/Cursor のアダプターが正本と一致している", ["scripts/sync_agent_adapters.py", "--check"]),
+    ("AIが読むファイルに不可視文字・指示の乗っ取りが無い", ["scripts/scan_agent_content.py", "--all"]),
+    ("Work Item と ADR が決まりを満たしている", ["scripts/check_records.py"]),
+):
+    if not os.path.exists(os.path.join(ROOT, cmd[0])):
+        check(False, label, f"{cmd[0]} が無い")
+        continue
+    r = subprocess.run([sys.executable, "-B", *cmd], cwd=ROOT, capture_output=True, text=True)
+    lines = [l for l in (r.stdout + r.stderr).splitlines() if l.strip()]
+    check(r.returncode == 0, label, "" if r.returncode == 0 else "; ".join(lines[:3]))
+
+# --- 5d. スキルが呼ぶスクリプトが実在する ------------------------------------
+
+missing_scripts = []
+for dirpath, _, filenames in os.walk(SKILLS_DIR):
+    for f in filenames:
+        if not f.endswith(".md"):
+            continue
+        for m in re.finditer(r"python3\s+((?:scripts|night-run|\.claude/hooks)/[\w./-]+\.py)", open(os.path.join(dirpath, f)).read()):
+            if not os.path.exists(os.path.join(ROOT, m.group(1))):
+                missing_scripts.append(f"{os.path.relpath(os.path.join(dirpath, f), ROOT)} → {m.group(1)}")
+check(not missing_scripts, "スキルが呼ぶスクリプトが全て存在する", "; ".join(sorted(set(missing_scripts))))
+
 # --- 6. Markdownの相対リンク切れ ----------------------------------------------
 
 md_files = []
 for dirpath, dirnames, filenames in os.walk(ROOT):
-    dirnames[:] = [d for d in dirnames if d not in (".git", "node_modules", ".idea")]
+    dirnames[:] = [d for d in dirnames if d not in (".git", "node_modules", ".idea", ".venv")]
     md_files += [os.path.join(dirpath, f) for f in filenames if f.endswith(".md")]
 
 broken = []

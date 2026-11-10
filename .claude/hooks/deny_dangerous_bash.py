@@ -9,9 +9,14 @@ settings.json の permissions.deny は前方一致なので、フラグ後置の
 できない。**第一関門であって最後の砦ではない**（最後の砦はCI・レビュー層）。
 検出パターンを変更したら test_deny_dangerous_bash.py を必ず更新・実行すること。
 
-標準ライブラリのみ使用。python3 がPATHに必要。exit 2 でブロック
-（stderrがClaudeに伝わる）。入力が解釈できない場合はブロックしない
-（フェイルオープン）。
+標準ライブラリのみ使用。python3 がPATHに必要。入力が解釈できない場合は
+ブロックしない（フェイルオープン）。
+
+Claude Code / Codex / Cursor の3つから呼ばれる（--provider で入出力の形式を切り替える）。
+  Claude: .claude/settings.json の PreToolUse。exit 2 + stderr で拒否
+  Codex : .codex/hooks.json の PreToolUse。permissionDecision: deny のJSONで拒否
+  Cursor: .cursor/hooks.json の beforeShellExecution / beforeReadFile（--event read）。
+          permission: deny のJSONで拒否
 """
 import json
 import re
@@ -132,6 +137,31 @@ def positional_args(tokens):
     return args
 
 
+HOOKS_PATH_OK = (".githooks", "./.githooks")
+
+
+def hooks_path_ok(sub, after):
+    """core.hooksPath に触れる git コマンドのうち、許すもの（読む・.githooks にする）か。"""
+    if sub != "config":
+        return False  # -c / --config-env で他のサブコマンドに一時的に効かせる形
+    if any(t in ("--unset", "--unset-all", "--remove-section", "--rename-section", "--replace-all", "--edit", "-e")
+           for t in after):
+        return False
+    words = [t for t in after if not t.startswith("-")]
+    if words and words[0] in ("unset", "remove-section", "rename-section", "edit"):
+        return False
+    if words and words[0] in ("get", "set"):
+        words = words[1:]
+    if not words or words[0].lower() != "core.hookspath":
+        return False  # core.hooksPath=... のような値つきの書き方、別のキーとの組み合わせ
+    values = words[1:]
+    return not values or (len(values) == 1 and values[0] in HOOKS_PATH_OK)
+
+
+# 環境変数で git の設定を差し替える形（GIT_CONFIG_KEY_0=core.hooksPath / GIT_CONFIG_PARAMETERS）
+ENV_HOOKS_PATH = re.compile(r"GIT_CONFIG_(?:KEY_\d+|PARAMETERS)=\S*core\.hookspath", re.I)
+
+
 def check_segment(segment):
     """パイプ・連結で区切られた1コマンド分を検査。ブロック理由 or None を返す。"""
     tokens = strip_wrappers(segment.split())
@@ -140,6 +170,9 @@ def check_segment(segment):
 
     cmd = tokens[0]
     rest = [t.strip("\"'") for t in tokens[1:]]
+
+    if ENV_HOOKS_PATH.search(segment):
+        return "環境変数で core.hooksPath を差し替えると、コミット前の検査が効かなくなるためブロックしています。"
 
     # シェル経由（bash -c "..."）や eval は、引用符の中身を取り出して再帰検査する。
     # -c は -lc / -xc のように他フラグと束ねられるので、束ねフラグも拾う
@@ -173,6 +206,16 @@ def check_segment(segment):
 
     if cmd == "git":
         sub, after = git_subcommand(rest)
+        # コミット前の検査（.githooks/pre-commit・秘密情報の検査）を飛ばす操作。
+        # AGENTS.md 安全ルール6。-c で hooksPath を差し替える・設定を外すのも同じ扱い。
+        # core.hooksPath に触れる git コマンドは、「今の値を読む」「.githooks にする」以外すべて止める
+        # （-c / --config-env での一時的な差し替え、config set/unset、--unset 等の変種を個別に追わない）。
+        if any("core.hookspath" in t.lower() for t in rest) and not hooks_path_ok(sub, after):
+            return "core.hooksPath を差し替える・外す・.githooks 以外にすると、コミット前の検査（秘密情報・不可視文字・安全網の整合性）が効かなくなるためブロックしています。検査が失敗したなら、原因を直してからコミットしてください。"
+        if sub in ("commit", "push", "merge", "am", "cherry-pick", "rebase") and has_opt(rest, r"--no-ver(i(f(y)?)?)?"):
+            return "--no-verify はコミット前の検査（秘密情報・不可視文字・安全網の整合性）を飛ばすためブロックしています。検査が失敗したなら、原因を直してからやり直してください。"
+        if sub == "commit" and any(re.fullmatch(r"-[A-Za-z]*n[A-Za-z]*", t) for t in after):
+            return "git commit -n は --no-verify と同じ意味のためブロックしています。検査が失敗したなら、原因を直してからコミットしてください。"
         # 長オプションはgetoptが曖昧でない略記を受理するため、正式表記だけでなく
         # 略記（--force→--for, --hard→--ha, --delete→--del）も拾う。
         if sub == "push":
@@ -249,21 +292,66 @@ def check_command(command):
     return None
 
 
-def main():
+def respond(provider, reason):
+    """ツールごとの「拒否」の伝え方に合わせて (stdout, stderr, exit code) を返す。"""
+    if provider == "cursor":
+        if reason:
+            return json.dumps({"permission": "deny", "user_message": reason, "agent_message": reason},
+                              ensure_ascii=False), "", 0
+        return "{}", "", 0
+    if provider == "codex":
+        if reason:
+            return json.dumps({"hookSpecificOutput": {"hookEventName": "PreToolUse",
+                                                      "permissionDecision": "deny",
+                                                      "permissionDecisionReason": reason}},
+                              ensure_ascii=False), "", 0
+        return "", "", 0
+    # Claude Code: exit 2 で拒否し、stderr が Claude に伝わる
+    return "", (reason or ""), (2 if reason else 0)
+
+
+def extract(provider, data, event):
+    """入力から検査対象を取り出す。(種類, 値) か None。"""
+    if provider == "cursor":
+        if event == "read":
+            return "read", data.get("file_path") or ""
+        return "shell", data.get("command") or ""
+    if data.get("tool_name") not in ("Bash", "shell", "exec_command", None):
+        return None
+    tool_input = data.get("tool_input") or {}
+    command = tool_input.get("command", "")
+    if isinstance(command, list):  # Codex は argv の配列で渡すことがある
+        command = " ".join(str(c) for c in command)
+    return "shell", command or ""
+
+
+def main(argv=None):
+    import argparse
+    ap = argparse.ArgumentParser()
+    ap.add_argument("--provider", choices=("claude", "codex", "cursor"), default="claude")
+    ap.add_argument("--event", choices=("shell", "read"), default="shell")
+    args = ap.parse_args(argv)
     try:
         data = json.load(sys.stdin)
+        if not isinstance(data, dict):
+            raise ValueError
     except Exception:
-        return 0  # 入力が読めない場合はブロックしない（フェイルオープン）
+        data = None  # 入力が読めない場合はブロックしない（フェイルオープン）
 
-    if data.get("tool_name") != "Bash":
-        return 0
-
-    command = (data.get("tool_input") or {}).get("command", "") or ""
-    reason = check_command(command)
-    if reason:
-        print(reason, file=sys.stderr)
-        return 2
-    return 0
+    reason = None
+    target = extract(args.provider, data, args.event) if data is not None else None
+    if target and target[0] == "shell":
+        reason = check_command(target[1])
+    elif target and target[0] == "read":
+        path = target[1]
+        if SECRET_PATH.search(path) and not SECRET_OK.search(path):
+            reason = f"秘密情報のファイル（{path}）は読まない（AGENTS.md 安全ルール2）"
+    out, err, code = respond(args.provider, reason)
+    if out:
+        print(out)
+    if err:
+        print(err, file=sys.stderr)
+    return code
 
 
 if __name__ == "__main__":

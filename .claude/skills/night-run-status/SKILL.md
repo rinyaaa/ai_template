@@ -5,41 +5,19 @@ description: 「night-runどうなってる」「夜間実行の状況を教え�
 
 # night-run ステータス確認
 
-`night-run/` の状態ファイル群と、稼働中コンテナの有無を読み取り専用で棚卸しし、平易な言葉で報告するスキル。ここでは何も変更しない(タスクの再実行・コンテナの起動停止はしない。それらが必要なら `night-run/run.sh` の使い方を案内するだけに留める)。
+読み取り専用。タスクの再実行・コンテナの起動停止はしない（要るなら `night-run/run.sh` の使い方を案内するだけ）。
 
-## Step 1: state ファイルの有無を確認する
+## Step 1: 集める
 
-`night-run/state/night-run-state.json` が無ければ、「まだnight-runが一度もセットアップされていない(ヒアリングSkillが未実行)」と伝えて終わる。
-
-## Step 2: タスクごとの状況をまとめる
-
-`night-run/state/night-run-state.json` を読み、`deadline` / `hard_limit` / 各タスクの `status` を確認する。タスクごとに:
-
-- `done`: `pr_url` と `pr_status`(ready/draft)を提示する
-- `in_progress`: `step`(最後に記録された作業段階)と `review_round` を提示する
-- `failed`: `failure_reason` と `diagnostic_branch` を提示する(調査するなら診断ブランチを見るよう案内する)
-- `pending`: まだ着手されていないことを伝える
-
-締切(`deadline`)・ハードリミット(`hard_limit`)が既に過ぎているかどうかも、現在時刻と比較して伝える。
-
-## Step 3: アラート・サマリを確認する
-
-- `night-run/state/alerts.log` が存在すれば末尾を読み、`failed`やサンドボックスガードの異常など、見落としてはいけない警告が無いか確認する
-- `night-run/state/summary.txt` が存在すれば(全タスク完走後に書かれる最終サマリ)、その内容をそのまま提示する
-
-## Step 4: コンテナが今も動いているか確認する
-
-```sh
-docker ps --filter name=night-runner --format '{{.Status}}'
+```bash
+python3 night-run/status.py
 ```
 
-動いていれば「まだ実行中。`night-run/run.sh logs` でリアルタイムログを追える」と伝える。動いていなければ、state上の`pending`/`in_progress`タスクが残っているかどうかで「完走した」のか「途中で止まった(コンテナが落ちた・stopされた)」のかを判断し、後者なら`night-run/README.md`のトラブルシュートを参照するよう案内する。
+締切・強制終了を過ぎたか、タスクごとの状態（done は PR、in_progress は段階、failed は原因と診断ブランチ）、集計、`alerts.log` の末尾、`summary.txt`、コンテナが動いているかと全体の判定（実行中 / 完走 / 途中停止 / 未セットアップ）が出る。**state の JSON を自分で開き直さない。**
 
-## Step 5: 平易な言葉で報告する
+## Step 2: 平易に報告する
 
-以下を簡潔にまとめて報告する。
-
-- 全体のステータス(実行中 / 完走 / 未セットアップ / 途中停止)
-- 完了タスク数・失敗タスク数・未着手タスク数
-- 失敗タスクがあれば、原因と診断ブランチ
-- 次にユーザーがとるべきアクション(あれば): 例えば「`failed`タスクの診断ブランチを確認する」「コンテナが落ちているので`night-run/run.sh start`でやり直す前に原因を確認する」等
+- 全体の状態と、完了・失敗・未着手の数
+- 失敗があれば原因と診断ブランチ（調べるならそのブランチを見る）
+- `alerts.log` に見落としてはいけない警告（failed・サンドボックスガードの異常）があれば必ず挙げる
+- 次の一手（例:「failed の診断ブランチを確かめる」「コンテナが落ちているので、`night-run/run.sh start` でやり直す前に README のトラブルシュートで原因を確かめる」）

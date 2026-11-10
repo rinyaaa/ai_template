@@ -1,0 +1,20 @@
+{
+  "_comment": "scan_agent_content.py の意図的な出現だけを登録する。path が / で終わればディレクトリ配下すべて。line を付けるとその行だけ。理由は必須。",
+  "entries": [
+    {
+      "path": "scripts/scan_agent_content.py",
+      "rule": "*",
+      "reason": "検出パターンの定義そのもの"
+    },
+    {
+      "path": "scripts/tests/",
+      "rule": "*",
+      "reason": "スキャナとhookのテスト用の検体"
+    },
+    {
+      "path": ".claude/hooks/test_deny_dangerous_bash.py",
+      "rule": "*",
+      "reason": "ブロックされるべきコマンドの検体"
+    }
+  ]
+}

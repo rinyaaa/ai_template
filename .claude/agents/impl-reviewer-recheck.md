@@ -2,7 +2,6 @@
 name: impl-reviewer-recheck
 description: implementation-review から起動する再レビュー担当。修正チケットの解消だけを確認する。
 tools: Read, Grep, Glob, Bash
-model: sonnet
 ---
 
 # 再レビュー担当
@@ -11,7 +10,7 @@ model: sonnet
 
 ## やること
 
-チケットごとに、そこに書かれた「解消の確認方法」を実行し、**解消 / 未解消**を根拠つきで返す。
+渡された材料ファイル（`.git/ai-review/recheck.md`。チケットと初回以降の修正分の差分）を読み、チケットごとに「解消の確認方法」を実行して、**解消 / 未解消**を根拠つきで返す。
 
 ## やらないこと
 

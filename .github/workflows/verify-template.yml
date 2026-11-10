@@ -1,7 +1,8 @@
 # テンプレート自身の安全網が壊れていないかを毎push検査する。
 # 検査内容は scripts/verify_safety_net.py を参照（hookの回帰テスト、
 # settings.jsonのdenyベースライン、スキルの整合性、CI雛形の構文、
-# workflows自体の構文とactionのSHA固定、リンク切れ）。
+# workflows自体の構文とactionのSHA固定、リンク切れ、Codex/Cursorのhook、
+# アダプターの同期、不可視文字・指示の乗っ取り）と、scripts/ のテスト。
 name: verify-template
 on:
   pull_request:
@@ -19,3 +20,4 @@ jobs:
           python-version: "3.12"
       - run: pip install pyyaml
       - run: python3 scripts/verify_safety_net.py
+      - run: python3 -m unittest discover -s scripts/tests

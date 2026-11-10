@@ -9,6 +9,7 @@
 戻すときは `git switch -c <名前> backup/...` や `git checkout backup/... -- <ファイル>` で取り出せる。
 """
 import argparse
+import os
 import sys
 from datetime import datetime
 from pathlib import Path
@@ -48,13 +49,24 @@ def summary():
     return status
 
 
+def _ident_env():
+    """退避コミットの作者。git が名前・メールを決められない環境（CI・初期設定前の PC）でも退避を止めない。"""
+    ok = all(git("var", v, check=False, env=os.environ).strip()
+             for v in ("GIT_AUTHOR_IDENT", "GIT_COMMITTER_IDENT"))
+    if ok:
+        return None
+    fallback = {"NAME": "rollback_snapshot", "EMAIL": "rollback-snapshot@localhost"}
+    return dict(os.environ, **{f"GIT_{who}_{k}": v for who in ("AUTHOR", "COMMITTER") for k, v in fallback.items()})
+
+
 def save(dirty):
     stamp = datetime.now().strftime("%Y%m%d-%H%M%S")
     name = f"backup/before-rollback-{stamp}"
     head = git("rev-parse", "HEAD").strip()
     if dirty:
         tree = snapshot_tree()
-        target = git("commit-tree", tree, "-p", head, "-m", f"rollback前の作業ツリー退避 {stamp}").strip()
+        target = git("commit-tree", tree, "-p", head, "-m", f"rollback前の作業ツリー退避 {stamp}",
+                     env=_ident_env()).strip()
     else:
         target = head
     git("branch", name, target)

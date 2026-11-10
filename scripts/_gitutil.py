@@ -7,8 +7,8 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 
 
-def git(*args, check=True, root=ROOT):
-    r = subprocess.run(["git", *args], cwd=root, capture_output=True, text=True, stdin=subprocess.DEVNULL)
+def git(*args, check=True, root=ROOT, env=None):
+    r = subprocess.run(["git", *args], cwd=root, capture_output=True, text=True, stdin=subprocess.DEVNULL, env=env)
     if check and r.returncode != 0:
         raise SystemExit(f"git {' '.join(args)} に失敗: {r.stderr.strip()}")
     return r.stdout

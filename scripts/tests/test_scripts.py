@@ -127,7 +127,12 @@ class GitScripts(unittest.TestCase):
             (repo / "README.md").write_text("broken\n")
             (repo / "new.txt").write_text("untracked\n")
             before = run(["git", "status", "--porcelain"], cwd=repo).stdout
-            r = run([PY, "scripts/rollback_snapshot.py", "--save"], cwd=repo)
+            # CI のように user.name / user.email が無い環境でも退避できる（壊れた直後に使うため）
+            no_ident = {k: v for k, v in os.environ.items()
+                        if not k.startswith(("GIT_AUTHOR_", "GIT_COMMITTER_")) and k != "EMAIL"}
+            no_ident.update(GIT_CONFIG_GLOBAL=os.devnull, GIT_CONFIG_NOSYSTEM="1",
+                            GIT_AUTHOR_NAME="", GIT_COMMITTER_NAME="")  # CI の runner は名前が空
+            r = run([PY, "scripts/rollback_snapshot.py", "--save"], cwd=repo, env=no_ident)
             self.assertEqual(r.returncode, 0, r.stderr)
             self.assertEqual(run(["git", "status", "--porcelain"], cwd=repo).stdout, before)
             branch = run(["git", "branch", "--list", "backup/*", "--format=%(refname:short)"], cwd=repo).stdout.strip()
